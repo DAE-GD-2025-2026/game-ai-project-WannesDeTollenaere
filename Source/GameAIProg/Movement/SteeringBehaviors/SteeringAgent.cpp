@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "SteeringAgent.h"
+#include "DrawDebugHelpers.h"
 
 
 // Sets default values
@@ -14,6 +15,7 @@ ASteeringAgent::ASteeringAgent()
 void ASteeringAgent::BeginPlay()
 {
 	Super::BeginPlay();
+	m_OriginalMaxSpeed = GetMaxLinearSpeed();
 }
 
 void ASteeringAgent::BeginDestroy()
@@ -29,9 +31,27 @@ void ASteeringAgent::Tick(float DeltaTime)
 	if (SteeringBehavior)
 	{
 		SteeringOutput output = SteeringBehavior->CalculateSteering(DeltaTime, *this);
-		AddMovementInput(FVector{output.LinearVelocity, 0.f});
+		AddMovementInput(FVector{ output.LinearVelocity, 0.f });
 
 		// TODO: implement angular velocity handling
+
+		// DEBUG LINES
+		if (GetDebugRenderingEnabled())
+		{
+			FVector ActorLocation = GetActorLocation();
+
+			// green: LinearVelocity 
+			FVector DesiredLinearVelocity = FVector(output.LinearVelocity, 0.f);
+			DrawDebugLine(GetWorld(), ActorLocation, ActorLocation + DesiredLinearVelocity, FColor::Green, false, -1.0f, 0, 2.0f);
+
+			// blue: angularvelocity
+			FVector DesiredAngularVector = FVector::UpVector * output.AngularVelocity * 100.0f;
+			DrawDebugLine(GetWorld(), ActorLocation, ActorLocation + DesiredAngularVector, FColor::Blue, false, -1.0f, 0, 2.0f);
+
+			// purple actual velocity
+			FVector ActualVelocity = GetVelocity();
+			DrawDebugLine(GetWorld(), ActorLocation, ActorLocation + ActualVelocity, FColor::Purple, false, -1.0f, 0, 2.0f);
+		}
 	}
 }
 

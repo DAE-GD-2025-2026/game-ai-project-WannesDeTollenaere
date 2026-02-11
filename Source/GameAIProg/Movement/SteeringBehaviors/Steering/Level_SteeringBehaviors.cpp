@@ -231,6 +231,9 @@ void ALevel_SteeringBehaviors::SetAgentBehavior(ImGui_Agent& Agent)
 	case BehaviorTypes::Flee:
 		Agent.Behavior = std::make_unique<Flee>();
 		break;
+	case BehaviorTypes::Arrive:
+		Agent.Behavior = std::make_unique<Arrive>();
+		break;
 	//TODO; Implement behaviors setting here
 	default:
 		assert(false); // Incorrect Agent Behavior gotten during SetAgentBehavior()	
