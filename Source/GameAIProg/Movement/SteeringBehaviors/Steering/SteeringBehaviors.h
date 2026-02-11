@@ -65,3 +65,13 @@ private:
 	const float m_SlowDownAngle = 45.0f; 
 	const float m_TargetRadius = 1.0f;
 };
+// --- Pursuit ---
+class Pursuit : public ISteeringBehavior
+{
+public:
+	Pursuit() = default;
+
+	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+private:
+	const float m_TimeAhead = 1.0f;
+};

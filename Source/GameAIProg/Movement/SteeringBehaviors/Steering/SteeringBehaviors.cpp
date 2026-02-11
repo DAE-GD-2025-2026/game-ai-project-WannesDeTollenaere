@@ -107,3 +107,30 @@ SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
 	return Output;
 }
+
+// PURSUIT
+SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput steering{};
+
+	FVector2D targetPos = (Target.Position + Target.LinearVelocity * m_TimeAhead);
+	steering.LinearVelocity = targetPos - Agent.GetPosition();
+	Agent.SetMaxLinearSpeed(200.f);
+
+	DrawDebugCircle(
+		Agent.GetWorld(),
+		FVector{ targetPos,0.f },
+		20.f,
+		32,                         // Segments
+		FColor::Magenta,               // color
+		false,
+		-1.0f,                      // LifeTime
+		0,                          // DepthPriority
+		2.0f,                       // Thickness
+		FVector(1.0f, 0.0f, 0.0f),  // X-axis
+		FVector(0.0f, 1.0f, 0.0f),  // y-axis
+		false
+	);
+
+	return steering;
+}
