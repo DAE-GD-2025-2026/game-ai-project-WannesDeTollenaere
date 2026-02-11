@@ -32,8 +32,19 @@ void ASteeringAgent::Tick(float DeltaTime)
 	{
 		SteeringOutput output = SteeringBehavior->CalculateSteering(DeltaTime, *this);
 		AddMovementInput(FVector{ output.LinearVelocity, 0.f });
+		
+		if (!FMath::IsNearlyZero(output.AngularVelocity))
+		{
+			SetIsAutoOrienting(false);
 
-		// TODO: implement angular velocity handling
+			float DeltaYaw = output.AngularVelocity * DeltaTime;
+
+			AddActorWorldRotation(FRotator(0.f, DeltaYaw, 0.f));
+		}
+		else
+		{
+			SetIsAutoOrienting(true);
+		}
 
 		// DEBUG LINES
 		if (GetDebugRenderingEnabled())
@@ -44,13 +55,10 @@ void ASteeringAgent::Tick(float DeltaTime)
 			FVector DesiredLinearVelocity = FVector(output.LinearVelocity, 0.f);
 			DrawDebugLine(GetWorld(), ActorLocation, ActorLocation + DesiredLinearVelocity, FColor::Green, false, -1.0f, 0, 2.0f);
 
-			// blue: angularvelocity
-			FVector DesiredAngularVector = FVector::UpVector * output.AngularVelocity * 100.0f;
-			DrawDebugLine(GetWorld(), ActorLocation, ActorLocation + DesiredAngularVector, FColor::Blue, false, -1.0f, 0, 2.0f);
-
 			// purple actual velocity
 			FVector ActualVelocity = GetVelocity();
 			DrawDebugLine(GetWorld(), ActorLocation, ActorLocation + ActualVelocity, FColor::Purple, false, -1.0f, 0, 2.0f);
+
 		}
 	}
 }

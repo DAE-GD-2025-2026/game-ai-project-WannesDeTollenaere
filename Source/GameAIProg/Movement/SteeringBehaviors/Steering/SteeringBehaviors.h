@@ -53,3 +53,15 @@ private:
 	float m_SlowRadius{ 500.f };
 	float m_TargetRadius{100.f};
 };
+
+// --- FACE ---
+class Face : public ISteeringBehavior
+{
+public:
+	Face() = default;
+
+	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+private:
+	const float m_SlowDownAngle = 45.0f; 
+	const float m_TargetRadius = 1.0f;
+};

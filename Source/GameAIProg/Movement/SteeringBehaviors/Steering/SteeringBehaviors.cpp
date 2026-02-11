@@ -71,3 +71,39 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	);
 	return steering;
 }
+
+// FACE
+SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput Output;
+
+	const FVector Direction = FVector{ Target.Position,0.f } - Agent.GetActorLocation();
+
+	if (Direction.IsNearlyZero())
+	{
+		return Output;
+	}
+
+	const float TargetYaw = Direction.Rotation().Yaw;
+
+	const float DeltaYaw = FMath::FindDeltaAngleDegrees(Agent.GetRotation(), TargetYaw);
+	const float AbsDelta = FMath::Abs(DeltaYaw);
+
+	if (AbsDelta <= m_TargetRadius)
+	{
+		return Output;
+	}
+
+	const float MaxAngularSpeed = Agent.GetMaxAngularSpeed();
+	float TargetSpeed = MaxAngularSpeed;
+
+	if (AbsDelta < m_SlowDownAngle)
+	{
+		TargetSpeed = MaxAngularSpeed * (AbsDelta / m_SlowDownAngle);
+	}
+
+	Output.AngularVelocity = TargetSpeed * FMath::Sign(DeltaYaw);
+	Output.LinearVelocity = FVector2D::Zero();
+
+	return Output;
+}
