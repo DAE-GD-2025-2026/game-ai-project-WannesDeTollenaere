@@ -134,3 +134,15 @@ SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
 	return steering;
 }
+
+//EVADE
+SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{	
+	if((Target.Position - Agent.GetPosition()).Length() > m_EvasionRadius)
+		return SteeringOutput();
+
+	SteeringOutput steering{ Pursuit::CalculateSteering(DeltaT, Agent) };
+	steering.LinearVelocity = -steering.LinearVelocity;
+
+	return steering;
+}

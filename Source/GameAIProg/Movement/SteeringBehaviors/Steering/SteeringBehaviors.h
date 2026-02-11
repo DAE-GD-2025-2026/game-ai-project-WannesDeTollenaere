@@ -75,3 +75,14 @@ public:
 private:
 	const float m_TimeAhead = 1.0f;
 };
+
+// --- Pursuit ---
+class Evade : public Pursuit
+{
+public:
+	Evade() = default;
+
+	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+private:
+	const float m_EvasionRadius{ 500.f };
+};
