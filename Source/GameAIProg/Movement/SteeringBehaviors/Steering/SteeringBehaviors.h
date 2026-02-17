@@ -76,7 +76,7 @@ private:
 	const float m_TimeAhead = 1.0f;
 };
 
-// --- Pursuit ---
+// --- Evade ---
 class Evade : public Pursuit
 {
 public:
@@ -85,4 +85,27 @@ public:
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
 private:
 	const float m_EvasionRadius{ 500.f };
+};
+
+// --- Wander ---
+class Wander : public Seek
+{
+public:
+	Wander() = default;
+	virtual ~Wander() = default;
+
+	virtual SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+
+	void SetWanderOffset(float offset) { m_Offset = offset; }
+	void SetWanderRadius(float radius) { m_Radius = radius; }
+	void SetMaxAngleChange(float maxChange) { m_MaxAngleChange = maxChange; }
+
+protected:
+	float m_Offset = 600.f;
+
+	float m_Radius = 400.f;
+
+	float m_MaxAngleChange = PI / 4; // 45 degrees
+
+	float m_WanderAngle = 0.f;
 };
