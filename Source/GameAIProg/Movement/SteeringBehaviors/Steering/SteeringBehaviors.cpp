@@ -40,35 +40,38 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
 	FVector Center = FVector(Agent.GetPosition().X, Agent.GetPosition().Y, 0.0f);
 
-	//Drawcircles
-	DrawDebugCircle(
-		Agent.GetWorld(),
-		Center,                     
-		m_SlowRadius,             
-		32,                         // Segments
-		FColor::Blue,               // color
-		false,                      
-		-1.0f,                      // LifeTime
-		0,                          // DepthPriority
-		2.0f,                       // Thickness
-		FVector(1.0f, 0.0f, 0.0f),  // X-axis
-		FVector(0.0f, 1.0f, 0.0f),  // y-axis
-		false                       
-	);
-	DrawDebugCircle(
-		Agent.GetWorld(),
-		Center,
-		m_TargetRadius,
-		32,                         // Segments
-		FColor::Red,               // color
-		false,
-		-1.0f,                      // LifeTime
-		0,                          // DepthPriority
-		2.0f,                       // Thickness
-		FVector(1.0f, 0.0f, 0.0f),  // X-axis
-		FVector(0.0f, 1.0f, 0.0f),  // y-axis
-		false
-	);
+	if (Agent.GetDebugRenderingEnabled())
+	{
+		//Drawcircles
+		DrawDebugCircle(
+			Agent.GetWorld(),
+			Center,
+			m_SlowRadius,
+			32,                         // Segments
+			FColor::Blue,               // color
+			false,
+			-1.0f,                      // LifeTime
+			0,                          // DepthPriority
+			2.0f,                       // Thickness
+			FVector(1.0f, 0.0f, 0.0f),  // X-axis
+			FVector(0.0f, 1.0f, 0.0f),  // y-axis
+			false
+		);
+		DrawDebugCircle(
+			Agent.GetWorld(),
+			Center,
+			m_TargetRadius,
+			32,                         // Segments
+			FColor::Red,               // color
+			false,
+			-1.0f,                      // LifeTime
+			0,                          // DepthPriority
+			2.0f,                       // Thickness
+			FVector(1.0f, 0.0f, 0.0f),  // X-axis
+			FVector(0.0f, 1.0f, 0.0f),  // y-axis
+			false
+		);
+	}
 	return steering;
 }
 
@@ -117,29 +120,35 @@ SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	steering.LinearVelocity = targetPos - Agent.GetPosition();
 	Agent.SetMaxLinearSpeed(200.f);
 
-	DrawDebugCircle(
-		Agent.GetWorld(),
-		FVector{ targetPos,0.f },
-		20.f,
-		32,                         // Segments
-		FColor::Magenta,               // color
-		false,
-		-1.0f,                      // LifeTime
-		0,                          // DepthPriority
-		2.0f,                       // Thickness
-		FVector(1.0f, 0.0f, 0.0f),  // X-axis
-		FVector(0.0f, 1.0f, 0.0f),  // y-axis
-		false
-	);
-
+	if (Agent.GetDebugRenderingEnabled())
+	{
+		DrawDebugCircle(
+			Agent.GetWorld(),
+			FVector{ targetPos,0.f },
+			20.f,
+			32,                         // Segments
+			FColor::Magenta,               // color
+			false,
+			-1.0f,                      // LifeTime
+			0,                          // DepthPriority
+			2.0f,                       // Thickness
+			FVector(1.0f, 0.0f, 0.0f),  // X-axis
+			FVector(0.0f, 1.0f, 0.0f),  // y-axis
+			false
+		);
+	}
 	return steering;
 }
 
 //EVADE
 SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {	
-	if((Target.Position - Agent.GetPosition()).Length() > m_EvasionRadius)
-		return SteeringOutput();
+	if ((Target.Position - Agent.GetPosition()).Length() > m_EvasionRadius)
+	{
+		SteeringOutput Out = {};
+		Out.IsValid = false; 
+		return Out;
+	}
 
 	SteeringOutput steering{ Pursuit::CalculateSteering(DeltaT, Agent) };
 	steering.LinearVelocity = -steering.LinearVelocity;
@@ -174,9 +183,12 @@ SteeringOutput Wander::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	Target.Position = FVector2D{ CirclePoint.X,CirclePoint.Y };
 
 	
-	DrawDebugCircle(Agent.GetWorld(), CircleCenter, m_Radius, 32, FColor::Red, false, -1.f, 0, 2.f, FVector(1,0,0), FVector(0,1,0), false);
-	//DrawDebugLine(Agent.GetWorld(), CircleCenter, CirclePoint, FColor::Blue, false, -1.f, 0, 2.f);
-	DrawDebugPoint(Agent.GetWorld(), CirclePoint, 10.f, FColor::Green, false, -1.f);
-	
+	if (Agent.GetDebugRenderingEnabled())
+	{
+		DrawDebugCircle(Agent.GetWorld(), CircleCenter, m_Radius, 32, FColor::Red, false, -1.f, 0, 2.f, FVector(1, 0, 0), FVector(0, 1, 0), false);
+		//DrawDebugLine(Agent.GetWorld(), CircleCenter, CirclePoint, FColor::Blue, false, -1.f, 0, 2.f);
+		DrawDebugPoint(Agent.GetWorld(), CirclePoint, 10.f, FColor::Green, false, -1.f);
+	}
+
 	return Seek::CalculateSteering(DeltaT, Agent);
 }

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include <memory> 
 #include "CombinedSteeringBehaviors.h"
 #include "GameAIProg/Shared/Level_Base.h"
 #include "GameAIProg/Movement/SteeringBehaviors/Steering/SteeringBehaviors.h"
@@ -15,22 +16,32 @@ class GAMEAIPROG_API ALevel_CombinedSteering : public ALevel_Base
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
-	ALevel_CombinedSteering();
 
-	// Called every frame
+	ALevel_CombinedSteering();
 	virtual void Tick(float DeltaTime) override;
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	virtual void BeginDestroy() override;
 
 private:
-	//Datamembers
 	bool UseMouseTarget = false;
 	bool CanDebugRender = false;
 
-	
+	UPROPERTY()
+	ASteeringAgent* DrunkAgent = nullptr;
+
+	UPROPERTY()
+	ASteeringAgent* EvadingAgent = nullptr;
+
+	// Drunk angents blended
+	std::unique_ptr<Seek> DrunkSeekBehavior;
+	std::unique_ptr<Wander> DrunkWanderBehavior;
+	std::unique_ptr<BlendedSteering> DrunkBlendedBehavior;
+
+	// evading agents priuority
+	std::unique_ptr<Evade> EvadingEvadeBehavior;
+	std::unique_ptr<Wander> EvadingWanderBehavior;
+	std::unique_ptr<PrioritySteering> EvadingPriorityBehavior;
 };
