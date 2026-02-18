@@ -5,7 +5,11 @@
 #include "CoreMinimal.h"
 #include "Flock.h"
 #include "Shared/Level_Base.h"
+#include <memory>
 #include "Level_Flocking.generated.h"
+
+
+class Seek;
 
 UCLASS()
 class GAMEAIPROG_API ALevel_Flocking : public ALevel_Base
@@ -29,4 +33,5 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category = "Flocking")
 	ASteeringAgent* pAgentToEvade{nullptr}; // non owning ref
+	std::unique_ptr<Seek> pEvadeAgentBehavior{};
 };
