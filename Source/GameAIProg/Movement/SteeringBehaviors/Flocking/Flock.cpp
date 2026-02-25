@@ -98,7 +98,7 @@ void Flock::Tick(float DeltaTime)
 		ASteeringAgent* pAgent = Agents[i];
 		if (!pAgent) continue;
 
-		if (bUseSpacePartitioning && pPartitionedSpace)
+		if (pPartitionedSpace)
 		{
 			pPartitionedSpace->UpdateAgentCell(*pAgent, OldPositions[i]);
 		}
