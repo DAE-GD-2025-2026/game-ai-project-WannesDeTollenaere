@@ -14,6 +14,7 @@
 #include "Debug/ReporterGraph.h"
 #include "Movement/SteeringBehaviors/SteeringAgent.h"
 
+
 // --- Cell ---
 // ------------
 struct Cell final
@@ -62,11 +63,9 @@ private:
 	float CellWidth;
 	float CellHeight;
 
-	// Members to avoid memory allocation on every frame
 	TArray<ASteeringAgent*> Neighbors;
 	int NrOfNeighbors;
 
-	// Helper functions
 	int PositionToIndex(FVector2D const & Pos) const;
 	bool DoRectsOverlap(FRect const& RectA, FRect const& RectB);
 };
