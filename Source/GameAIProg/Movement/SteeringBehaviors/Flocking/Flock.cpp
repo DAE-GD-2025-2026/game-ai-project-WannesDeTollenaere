@@ -61,7 +61,7 @@ Flock::Flock(
 		if (Agents[i])
 		{
 			Agents[i]->SetSteeringBehavior(pPrioritySteering.get());
-			Agents[i]->SetActorTickEnabled(false); // Make sure they do not tick automatically
+			Agents[i]->SetActorTickEnabled(false); 
 
 			pPartitionedSpace->AddAgent(*Agents[i]);
 			OldPositions[i] = Agents[i]->GetPosition();
@@ -272,6 +272,14 @@ void Flock::RenderNeighborhood()
 		for (int i = 0; i < GetNrOfNeighbors(); ++i)
 		{
 			DrawDebugLine(pWorld, pos, GetNeighbors()[i]->GetActorLocation(), FColor::Green, false, -1.f, 0, 2.f);
+		}
+
+		if (bUseSpacePartitioning && pPartitionedSpace)
+		{
+
+			FVector BoxExtents = FVector(NeighborhoodRadius, NeighborhoodRadius, 0.f);
+
+			DrawDebugBox(pWorld, pos, BoxExtents, FColor::Yellow, false, -1.f, 0, 2.0f);
 		}
 	}
 }

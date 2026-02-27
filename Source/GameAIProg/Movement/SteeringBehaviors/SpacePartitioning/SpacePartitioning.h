@@ -45,7 +45,6 @@ public:
 	//empties the cells of entities
 	void EmptyCells();
 	void RenderCells()const;
-
 private:
 	// For debug draw purposes
 	UWorld* pWorld{};

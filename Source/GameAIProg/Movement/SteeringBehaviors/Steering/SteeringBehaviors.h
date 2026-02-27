@@ -73,7 +73,7 @@ public:
 
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
 private:
-	const float m_TimeAhead = 1.0f;
+	const float m_TimeAhead = 0.55f;
 };
 
 // --- Evade ---
