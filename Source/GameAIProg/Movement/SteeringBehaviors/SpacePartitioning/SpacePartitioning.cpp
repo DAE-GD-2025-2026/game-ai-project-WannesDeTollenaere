@@ -81,6 +81,7 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
 	// Register the neighbors for the provided agent
 	// Only check the cells that are within the radius of the neighborhood
 	NrOfNeighbors = 0;
+	//instead of checking overlap for every cell for every agent i just check wich cells needs to be checked via math
 
 	FVector2D agentPos = Agent.GetPosition();
 	FRect queryBox;
@@ -89,21 +90,34 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
 
 	float queryRadiusSq = QueryRadius * QueryRadius;
 
-	// Check overlapping cells
-	for (const Cell& c : Cells)
-	{
-		if (!DoRectsOverlap(queryBox, c.BoundingBox))
-			continue;
+	int minCol = FMath::FloorToInt((queryBox.Min.X - CellOrigin.X) / CellWidth);
+	int minRow = FMath::FloorToInt((queryBox.Min.Y - CellOrigin.Y) / CellHeight);
+	int maxCol = FMath::FloorToInt((queryBox.Max.X - CellOrigin.X) / CellWidth);
+	int maxRow = FMath::FloorToInt((queryBox.Max.Y - CellOrigin.Y) / CellHeight);
 
-		for (ASteeringAgent* pOtherAgent : c.Agents)
+	// clamop in bounds so no out of range exceptions
+	minCol = FMath::Clamp(minCol, 0, NrOfCols - 1);
+	minRow = FMath::Clamp(minRow, 0, NrOfRows - 1);
+	maxCol = FMath::Clamp(maxCol, 0, NrOfCols - 1);
+	maxRow = FMath::Clamp(maxRow, 0, NrOfRows - 1);
+
+	for (int row = minRow; row <= maxRow; ++row)
+	{
+		for (int col = minCol; col <= maxCol; ++col)
 		{
-			if (pOtherAgent != nullptr && pOtherAgent != &Agent)
+			int index = (row * NrOfCols) + col;
+			const Cell& c = Cells[index];
+
+			for (ASteeringAgent* pOtherAgent : c.Agents)
 			{
-				if (FVector2D::DistSquared(agentPos, pOtherAgent->GetPosition()) <= queryRadiusSq)
+				if (pOtherAgent != nullptr && pOtherAgent != &Agent)
 				{
-					if (NrOfNeighbors < Neighbors.Num())
+					if (FVector2D::DistSquared(agentPos, pOtherAgent->GetPosition()) <= queryRadiusSq)
 					{
-						Neighbors[NrOfNeighbors++] = pOtherAgent;
+						if (NrOfNeighbors < Neighbors.Num())
+						{
+							Neighbors[NrOfNeighbors++] = pOtherAgent;
+						}
 					}
 				}
 			}
