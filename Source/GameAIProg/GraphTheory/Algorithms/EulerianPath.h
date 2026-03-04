@@ -33,54 +33,120 @@ namespace GameAI
 
 	inline Eulerianity EulerianPath::IsEulerian() const
 	{
-		// TODO If the graph is not connected, there can be no Eulerian Trail
+		if (!IsConnected())
+			return Eulerianity::notEulerian;
 
-		// TODO Count nodes with odd degree 
+		int oddDegreeCount = 0;
+		for (auto node : m_pGraph->GetActiveNodes())
+		{
+			auto connections = m_pGraph->FindConnectionsFrom(node->GetId());
 
-		// TODO A connected graph with more than 2 nodes with an odd degree (an odd amount of connections) is not Eulerian
+			if (connections.size() % 2 != 0)
+				oddDegreeCount++;
+		}
 
-		// TODO A connected graph with exactly 2 nodes with an odd degree is Semi-Eulerian (unless there are only 2 nodes)
-		// TODO An Euler trail can be made, but only starting and ending in these 2 nodes
+		if (oddDegreeCount > 2)
+			return Eulerianity::notEulerian;
 
-		// TODO A connected graph with no odd nodes is Eulerian
-		
+
+		if (oddDegreeCount == 2)
+			return Eulerianity::semiEulerian;
+
+		if (oddDegreeCount == 0)
+			return Eulerianity::eulerian;
+
 		return Eulerianity::notEulerian;
 	}
 
 	inline std::vector<Node*> EulerianPath::FindPath(Eulerianity& eulerianity) const
 	{
-		// Get a copy of the graph because this algorithm involves removing edges
 		Graph graphCopy = m_pGraph->Clone();
 		std::vector<Node*> Path = {};
 		std::vector<Node*> Nodes = graphCopy.GetActiveNodes();
 		int currentNodeId{ Graphs::InvalidNodeId };
-		
-		// TODO Check if there can be an Euler path
-		// TODO If this graph is not eulerian, return the empty path
-		
-		// TODO Start algorithm loop
+
+		if (Nodes.empty())
+			return Path;
+
+		if (eulerianity == Eulerianity::notEulerian)
+		{
+			return Path;
+		}
+
+		else if (eulerianity == Eulerianity::eulerian)
+		{
+			currentNodeId = Nodes[0]->GetId();
+		}
+		else if (eulerianity == Eulerianity::semiEulerian)
+		{
+			for (auto node : Nodes)
+			{
+				if (graphCopy.FindConnectionsFrom(node->GetId()).size() % 2 != 0)
+				{
+					currentNodeId = node->GetId();
+					break;
+				}
+			}
+		}
+
 		std::stack<int> nodeStack;
+
+		while (!nodeStack.empty() || !graphCopy.FindConnectionsFrom(currentNodeId).empty())
+		{
+			auto connections = graphCopy.FindConnectionsFrom(currentNodeId);
+
+			if (!connections.empty())
+			{
+				nodeStack.push(currentNodeId);
+
+				int neighborId = connections[0]->GetToId();
+
+				graphCopy.RemoveConnection(currentNodeId, neighborId);
+				//graphCopy.RemoveConnection(neighborId, currentNodeId); 
+
+				currentNodeId = neighborId;
+			}
+			else
+			{
+				Path.push_back(m_pGraph->GetNode(currentNodeId).get());
+
+				currentNodeId = nodeStack.top();
+				nodeStack.pop();
+			}
+		}
+
+		if (currentNodeId != Graphs::InvalidNodeId)
+		{
+			Path.push_back(m_pGraph->GetNode(currentNodeId).get());
+		}
 
 		std::reverse(Path.begin(), Path.end());
 		return Path;
 	}
 
-	inline void EulerianPath::VisitAllNodesDFS(const std::vector<Node*>& Nodes, std::vector<bool>& visited, int startIndex ) const
+	inline void EulerianPath::VisitAllNodesDFS(const std::vector<Node*>& Nodes, std::vector<bool>& visited, int startIndex) const
 	{
-		//  Mark the visited node
 		visited[startIndex] = true;
 
-		//  Ask the graph for the connections from that node
+		int currentNodeId = Nodes[startIndex]->GetId();
+		auto connections = m_pGraph->FindConnectionsFrom(currentNodeId);
 
-		//  recursively visit any valid connected nodes that were not visited before
-		//  Tip: use an index-based for-loop to find the correct index
-		for (auto& connection : m_pGraph->GetConnections())
+		for (auto connection : connections)
 		{
-			int id = connection->GetToId();
-			if (visited[id] == true)
-				continue;
-			
-			VisitAllNodesDFS(Nodes, visited, id);
+			int connectedNodeId = connection->GetToId();
+
+			for (size_t i = 0; i < Nodes.size(); ++i)
+			{
+				if (Nodes[i]->GetId() == connectedNodeId)
+				{
+					if (!visited[i])
+					{
+						VisitAllNodesDFS(Nodes, visited, i);
+					}
+
+					break; 
+				}
+			}
 		}
 	}
 

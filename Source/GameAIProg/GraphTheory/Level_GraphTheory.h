@@ -40,6 +40,8 @@ private:
 	GameAI::GraphRenderer Renderer{nullptr};
 	GameAI::GraphNodeFactory<GameAI::Node> NodeFactory{};
 	
+	std::vector<FVector2D> CurrentPath{};
+
 	UPROPERTY()
 	UGraphEditorComponent* PlayerGraphEditor{}; // ref
 	
