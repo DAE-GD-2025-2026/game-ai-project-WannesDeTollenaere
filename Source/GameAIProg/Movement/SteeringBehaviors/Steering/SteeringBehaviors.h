@@ -49,6 +49,7 @@ public:
 
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
 
+	void SetTargetRadius(float targetRadius) { m_TargetRadius = targetRadius; }
 private:
 	float m_SlowRadius{ 500.f };
 	float m_TargetRadius{100.f};
