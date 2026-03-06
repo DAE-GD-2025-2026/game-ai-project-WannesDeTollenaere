@@ -223,13 +223,13 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 		ImGui::Separator();
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Trim World", &m_bTrimWorld); 
-		if (m_bTrimWorld)
-		{
-			ImGuiHelpers::ImGuiSliderFloatWithSetter("Trim Size",
-				m_WorldSize, 500.f, 5000.f,
-				[this](float InVal) { m_WorldSize = InVal; }, "%.0f");
-		}
+		//ImGui::Checkbox("Trim World", &m_bTrimWorld); 
+		//if (m_bTrimWorld)
+		//{
+		//	ImGuiHelpers::ImGuiSliderFloatWithSetter("Trim Size",
+		//		m_WorldSize, 500.f, 5000.f,
+		//		[this](float InVal) { m_WorldSize = InVal; }, "%.0f");
+		//}
 
 		ImGui::Spacing();
 		ImGui::Separator();

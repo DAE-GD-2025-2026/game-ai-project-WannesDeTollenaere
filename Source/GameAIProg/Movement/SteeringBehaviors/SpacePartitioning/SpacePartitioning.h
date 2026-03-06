@@ -7,10 +7,8 @@
 /*=============================================================================*/
 
 #pragma once
-#include <list>
-#include <vector>
-#include <iterator>
 
+#include "CoreMinimal.h"
 #include "Debug/ReporterGraph.h"
 #include "Movement/SteeringBehaviors/SteeringAgent.h"
 
@@ -21,10 +19,10 @@ struct Cell final
 {
 	Cell(float Left, float Bottom, float Width, float Height);
 
-	std::vector<FVector2D> GetRectPoints() const;
-	
+	TArray<FVector2D> GetRectPoints() const;
+
 	// all the agents currently in this cell
-	std::list<ASteeringAgent*> Agents;
+	TArray<ASteeringAgent*> Agents;
 	FRect BoundingBox;
 };
 
@@ -48,11 +46,11 @@ public:
 private:
 	// For debug draw purposes
 	UWorld* pWorld{};
-	
+
 	// Cells and properties
-	std::vector<Cell> Cells;
+	TArray<Cell> Cells;
 	FVector2D CellOrigin{};
-	
+
 	float SpaceWidth;
 	float SpaceHeight;
 
@@ -65,6 +63,6 @@ private:
 	TArray<ASteeringAgent*> Neighbors;
 	int NrOfNeighbors;
 
-	int PositionToIndex(FVector2D const & Pos) const;
+	int PositionToIndex(FVector2D const& Pos) const;
 	bool DoRectsOverlap(FRect const& RectA, FRect const& RectB);
 };
