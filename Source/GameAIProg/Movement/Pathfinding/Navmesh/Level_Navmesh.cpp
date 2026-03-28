@@ -98,10 +98,20 @@ void ALevel_Navmesh::Tick(float DeltaTime)
 	}
 	
 	// Todo: Draw the portals travelled through with SSFA
-	// if (bDrawPortals)
-	// {
-	// 	
-	// }
+	if (bDrawPortals)
+	{
+		for (const GameAI::NavLine& Portal : DebugDrawPortals)
+		{
+			DrawDebugLine(
+				GetWorld(),
+				FVector{ Portal.P1.X, Portal.P1.Y, 5.0f },
+				FVector{ Portal.P2.X, Portal.P2.Y, 5.0f },
+				FColor::Green, false, -1, 2, 5.0f);
+
+			DrawDebugPoint(GetWorld(), FVector{ Portal.P1.X, Portal.P1.Y, 5.0f }, 8.0f, FColor::Red);
+			DrawDebugPoint(GetWorld(), FVector{ Portal.P2.X, Portal.P2.Y, 5.0f }, 8.0f, FColor::Blue);
+		}
+	}
 	
 	UpdateImGui();
 }
@@ -215,8 +225,18 @@ TArray<TArray<FVector>> ALevel_Navmesh::ExtractNavMeshTris() const
 void ALevel_Navmesh::SetTarget()
 {
 	GameAI::NavMeshPathfinding Pathfinder{};
-	std::vector<FVector2D> Path =  Pathfinder.FindPath(Agent->GetPosition(), 
-	FVector2D{LatestMouseWorldPos}, NavigationGraph.get());
+
+	DebugDrawNodes.clear();
+	DebugDrawPortals.clear();
+
+	std::vector<FVector2D> Path = Pathfinder.FindPath(
+		Agent->GetPosition(),
+		FVector2D{ LatestMouseWorldPos },
+		NavigationGraph.get(),
+		DebugDrawNodes,
+		DebugDrawPortals
+	);
+
 
 	DebugDrawPath = Path;
 	

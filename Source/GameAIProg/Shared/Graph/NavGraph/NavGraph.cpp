@@ -106,27 +106,36 @@ void GameAI::NavGraph::CreateNavigationGraph()
 
             Connection con1{ validNodeIds[0], validNodeIds[1] };
             con1.SetWeight(dist);
+            Connection con2{ validNodeIds[1], validNodeIds[0] }; 
+            con2.SetWeight(dist);
 
             AddConnection(std::make_unique<Connection>(con1));
+            AddConnection(std::make_unique<Connection>(con2));
         }
         else if (validNodeIds.size() == 3)
         {
-
             float dist01 = FVector2D::Distance(GetNode(validNodeIds[0])->GetPosition(), GetNode(validNodeIds[1])->GetPosition());
             float dist12 = FVector2D::Distance(GetNode(validNodeIds[1])->GetPosition(), GetNode(validNodeIds[2])->GetPosition());
             float dist20 = FVector2D::Distance(GetNode(validNodeIds[2])->GetPosition(), GetNode(validNodeIds[0])->GetPosition());
 
+            // 0 to 1 and back
+            Connection con01{ validNodeIds[0], validNodeIds[1] }; con01.SetWeight(dist01);
+            Connection con10{ validNodeIds[1], validNodeIds[0] }; con10.SetWeight(dist01);
 
-            Connection con1{ validNodeIds[0], validNodeIds[1] };
-            con1.SetWeight(dist01);
-            Connection con2{ validNodeIds[1], validNodeIds[2] };
-            con2.SetWeight(dist12);
-            Connection con3{ validNodeIds[2], validNodeIds[0] };
-            con3.SetWeight(dist20);
+            // 1 to 2 and back
+            Connection con12{ validNodeIds[1], validNodeIds[2] }; con12.SetWeight(dist12);
+            Connection con21{ validNodeIds[2], validNodeIds[1] }; con21.SetWeight(dist12);
 
-            AddConnection(std::make_unique<Connection>(con1));
-            AddConnection(std::make_unique<Connection>(con2));
-            AddConnection(std::make_unique<Connection>(con3));
+            // 2 to 0 and back
+            Connection con20{ validNodeIds[2], validNodeIds[0] }; con20.SetWeight(dist20);
+            Connection con02{ validNodeIds[0], validNodeIds[2] }; con02.SetWeight(dist20);
+
+            AddConnection(std::make_unique<Connection>(con01));
+            AddConnection(std::make_unique<Connection>(con10));
+            AddConnection(std::make_unique<Connection>(con12));
+            AddConnection(std::make_unique<Connection>(con21));
+            AddConnection(std::make_unique<Connection>(con20));
+            AddConnection(std::make_unique<Connection>(con02));
 
         }
     }

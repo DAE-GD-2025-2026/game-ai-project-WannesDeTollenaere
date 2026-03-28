@@ -17,13 +17,12 @@ namespace GameAI
 		//https://gamedev.stackexchange.com/questions/68302/how-does-the-simple-stupid-funnel-algorithm-work
 		static std::vector<NavLine> FindPortals(std::vector<Node*> const& Path, TriPolygon const& NavPoly)
 		{
-			//Container
+
 			std::vector<NavLine> Portals = {};
 			if (Path.empty()) return Portals;
 
 			Portals.push_back({ Path[0]->GetPosition(), Path[0]->GetPosition() });
 
-			//For each node received, get it's corresponding line
 			for (size_t i = 1; i < Path.size() - 1; ++i)
 			{
 				NavGraphNode* pNode = static_cast<NavGraphNode*>(Path[i]);
@@ -38,13 +37,9 @@ namespace GameAI
 					FVector2D p1_2D(p1.X, p1.Y);
 					FVector2D p2_2D(p2.X, p2.Y);
 
-					//Redetermine it's "orientation" based on the required path (left-right vs right-left) - p1 should be right point
 					FVector2D moveDir = Path[i]->GetPosition() - Path[i - 1]->GetPosition();
 					FVector2D portalDir = p2_2D - p1_2D;
 
-					// FIX: In Unreal, positive cross product means Right. If we want P1 to be Right, 
-					// portalDir (P2 - P1) must point Left. Therefore we expect a NEGATIVE cross product.
-					// If it is > 0, we swap.
 					if (FVector2D::CrossProduct(moveDir, portalDir) > 0.0f)
 					{
 						std::swap(p1_2D, p2_2D);
@@ -55,7 +50,7 @@ namespace GameAI
 				}
 			}
 
-			//Add degenerate portal to force end evaluation
+
 			if (Path.size() > 1)
 			{
 				Portals.push_back({ Path.back()->GetPosition(), Path.back()->GetPosition() });
@@ -80,22 +75,24 @@ namespace GameAI
 			int rightLegIndex = 1;
 			int leftLegIndex = 1;
 
+			// fix floating point errors
+			const float Epsilon = 0.001f;
+
 			FVector2D rightLeg = Portals[1].P1 - apexPos;
 			FVector2D leftLeg = Portals[1].P2 - apexPos;
 
 			for (int portalIdx = 1; portalIdx < Portals.size(); ++portalIdx)
 			{
-				// Get the current portal and store it in a local variable
 				NavLine currentPortal = Portals[portalIdx];
 
 				// --- RIGHT CHECK ---
 				FVector2D newRightLeg = currentPortal.P1 - apexPos;
 
-				//1. See if moving funnel inwards - RIGHT (Moving leftwards towards center = Negative in Unreal)
-				if (FVector2D::CrossProduct(rightLeg, newRightLeg) <= 0.0f)
+				//1. See if moving funnel inwards - RIGHT
+				if (rightLeg.IsNearlyZero() || FVector2D::CrossProduct(rightLeg, newRightLeg) <= Epsilon)
 				{
-					//2. See if new line degenerates a line segment - RIGHT (Not crossing left leg = Positive)
-					if (FVector2D::CrossProduct(leftLeg, newRightLeg) >= 0.0f)
+					//2. See if new line degenerates a line segment - RIGHT
+					if (leftLeg.IsNearlyZero() || FVector2D::CrossProduct(leftLeg, newRightLeg) >= -Epsilon)
 					{
 						rightLeg = newRightLeg;
 						rightLegIndex = portalIdx;
@@ -106,7 +103,7 @@ namespace GameAI
 						apexPos = apexPos + leftLeg;
 
 						apexIndex = leftLegIndex;
-						portalIdx = leftLegIndex + 1;
+						portalIdx = apexIndex + 1;
 
 						leftLegIndex = portalIdx;
 						rightLegIndex = portalIdx;
@@ -118,7 +115,6 @@ namespace GameAI
 						{
 							rightLeg = Portals[portalIdx].P1 - apexPos;
 							leftLeg = Portals[portalIdx].P2 - apexPos;
-							portalIdx--;
 							continue;
 						}
 					}
@@ -127,11 +123,11 @@ namespace GameAI
 				// --- LEFT CHECK ---
 				FVector2D newLeftLeg = currentPortal.P2 - apexPos;
 
-				//1. See if moving funnel inwards - LEFT (Moving rightwards towards center = Positive in Unreal)
-				if (FVector2D::CrossProduct(leftLeg, newLeftLeg) >= 0.0f)
+				//1. See if moving funnel inwards - LEFT
+				if (leftLeg.IsNearlyZero() || FVector2D::CrossProduct(leftLeg, newLeftLeg) >= -Epsilon)
 				{
-					//2. See if new line degenerates a line segment - LEFT (Not crossing right leg = Negative)
-					if (FVector2D::CrossProduct(rightLeg, newLeftLeg) <= 0.0f)
+					//2. See if new line degenerates a line segment - LEFT 
+					if (rightLeg.IsNearlyZero() || FVector2D::CrossProduct(rightLeg, newLeftLeg) <= Epsilon)
 					{
 						leftLeg = newLeftLeg;
 						leftLegIndex = portalIdx;
@@ -142,7 +138,7 @@ namespace GameAI
 						apexPos = apexPos + rightLeg;
 
 						apexIndex = rightLegIndex;
-						portalIdx = rightLegIndex + 1;
+						portalIdx = apexIndex + 1;
 
 						leftLegIndex = portalIdx;
 						rightLegIndex = portalIdx;
@@ -154,7 +150,6 @@ namespace GameAI
 						{
 							rightLeg = Portals[portalIdx].P1 - apexPos;
 							leftLeg = Portals[portalIdx].P2 - apexPos;
-							portalIdx--;
 							continue;
 						}
 					}
@@ -162,7 +157,7 @@ namespace GameAI
 			}
 
 			// Add last path point
-			Path.push_back(Portals.back().P1);
+			Path.push_back(Portals.back().P2);
 
 			return Path;
 		}
