@@ -16,7 +16,7 @@ This project contains the exercises and assignments for Algorithms 2 (GameAI). I
 Flocks follows 3 core steering behaviors combined in a **Blended Steering** behavior:
 * **Separation:** Avoid neighbors.
 * **Cohesion:** Steer towards neighbors.
-* **Alignment (Velocity Match):** Match neighbors' velocity.
+* **Velocity Match:** Match neighbors' velocity.
 
 Additionally, 2 more behaviors shape the flock's general movement:
 * **Seek:** Move towards a target.
