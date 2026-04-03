@@ -81,6 +81,8 @@ std::vector<FVector2D> NavMeshPathfinding::FindPath(const FVector2D& startPos, c
 			}
 		}
 	}
+	clonedGraph->SetConnectionCostsToDistances();
+
 
 	//Run A star on new graph
 	AStar aStarPathfinder(clonedGraph.get(), HeuristicFunctions::Euclidean);
