@@ -13,8 +13,8 @@ Flock::Flock(
 	: pWorld{pWorld}
 	, FlockSize{ FlockSize }
 	, pAgentToEvade{pAgentToEvade},
-	m_bTrimWorld{bTrimWorld},
-	m_WorldSize{WorldSize}
+	m_WorldSize{WorldSize},
+	m_bTrimWorld{ bTrimWorld }
 {
 
 	// initialize the flock and the memory pool
