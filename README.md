@@ -10,6 +10,21 @@ This project contains the exercises and assignments for Algorithms 2 (GameAI). I
 
 ---
 
+## Extra Assignment: Flocking Variations
+**Topic:** Steering - Part II: Combined Steering (Week 2)
+
+For the extra assignment, the **Flocking variations** option was picked, extending the flock from Assignment 1 (`Flock`/`Level_Flocking`) with two additional behaviors:
+
+### Vision Cone Neighbor Detection
+Instead of treating every agent within the neighborhood radius as a neighbor, an agent now only considers others that fall inside a **vision cone** in front of it. After the regular neighborhood query (brute-force or spatially partitioned), the candidates are filtered using the dot product between the agent's forward direction and the direction towards the candidate, compared against the cosine of half the cone's field-of-view angle. This makes the flock react only to what's "in front of" each boid, rather than agents approaching from behind. Both the cone and field-of-view angle are toggleable/adjustable at runtime through ImGui and are debug-rendered (cyan lines) alongside the neighborhood circle.
+
+### Multiple Dynamically Adjustable Flocks Which Avoid Each Other
+`ALevel_Flocking` can now spawn and destroy multiple `Flock` instances at runtime via the **Flock Manager** ImGui panel ("Add Flock"/"Remove Flock"). Every flock is made aware of all other flocks (`Flock::SetOtherFlocks`), and a new **Flock Avoidance** steering behavior steers each agent away from nearby agents that belong to a different flock - blended in alongside Separation, Cohesion, Velocity Match, Seek and Wander. The avoidance radius and weight are adjustable per flock at runtime, and the avoided neighbors/radius are debug-rendered in red.
+
+---
+
+---
+
 ## Assignment 1: Flocking + Spatial Partitioning
 
 ### Flocking
@@ -41,7 +56,7 @@ Normally, every update, each agent checks if every other agent is close enough t
 
 ![flocking](https://github.com/user-attachments/assets/f13971fd-f561-4fe1-b597-ff3c6967afc9)
 
----
+
 
 ## Assignment 2: A* Pathfinding + Navigation Meshes
 

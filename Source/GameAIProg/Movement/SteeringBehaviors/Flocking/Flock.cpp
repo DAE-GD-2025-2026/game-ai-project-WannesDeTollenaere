@@ -2,6 +2,8 @@
 #include "FlockingSteeringBehaviors.h"
 #include "Shared/ImGuiHelpers.h"
 #include "Movement/SteeringBehaviors/SpacePartitioning/SpacePartitioning.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 Flock::Flock(
 	UWorld* pWorld,
@@ -9,9 +11,11 @@ Flock::Flock(
 	int FlockSize,
 	float WorldSize,
 	ASteeringAgent* const pAgentToEvade,
-	bool bTrimWorld)
+	bool bTrimWorld,
+	FLinearColor const& FlockColor)
 	: pWorld{pWorld}
 	, FlockSize{ FlockSize }
+	, FlockColor{ FlockColor }
 	, pAgentToEvade{pAgentToEvade},
 	m_WorldSize{WorldSize},
 	m_bTrimWorld{ bTrimWorld }
@@ -19,7 +23,8 @@ Flock::Flock(
 
 	// initialize the flock and the memory pool
 	Agents.SetNum(FlockSize);
-	Neighbors.SetNum(FlockSize); 
+	Neighbors.SetNum(FlockSize);
+	VisibleNeighbors.SetNum(FlockSize);
 	OldPositions.SetNum(FlockSize);
 
 	// Create cell space
@@ -32,14 +37,16 @@ Flock::Flock(
 	pSeekBehavior = std::make_unique<Seek>();
 	pWanderBehavior = std::make_unique<Wander>();
 	pEvadeBehavior = std::make_unique<Evade>();
+	pFlockAvoidanceBehavior = std::make_unique<FlockAvoidance>(this);
 
 	// initialize blended steering
 	std::vector<BlendedSteering::WeightedBehavior> blendedWeights;
-	blendedWeights.push_back({ pCohesionBehavior.get(), 0.3f });
+	blendedWeights.push_back({ pCohesionBehavior.get(), 0.46f });
 	blendedWeights.push_back({ pSeparationBehavior.get(), 0.5f });
-	blendedWeights.push_back({ pVelMatchBehavior.get(), 0.3f });
-	blendedWeights.push_back({ pSeekBehavior.get(), 0.2f });
-	blendedWeights.push_back({ pWanderBehavior.get(), 0.2f });
+	blendedWeights.push_back({ pVelMatchBehavior.get(), 1.0f });
+	blendedWeights.push_back({ pSeekBehavior.get(), 0.0f });
+	blendedWeights.push_back({ pWanderBehavior.get(), 0.36f });
+	blendedWeights.push_back({ pFlockAvoidanceBehavior.get(), 1.0f });
 	pBlendedSteering = std::make_unique<BlendedSteering>(blendedWeights);
 
 	// init priority steering
@@ -61,10 +68,12 @@ Flock::Flock(
 		if (Agents[i])
 		{
 			Agents[i]->SetSteeringBehavior(pPrioritySteering.get());
-			Agents[i]->SetActorTickEnabled(false); 
+			Agents[i]->SetActorTickEnabled(false);
 
 			pPartitionedSpace->AddAgent(*Agents[i]);
 			OldPositions[i] = Agents[i]->GetPosition();
+
+			ApplyFlockColor(Agents[i]);
 		}
 	}
 }
@@ -113,6 +122,20 @@ void Flock::Tick(float DeltaTime)
 		else
 		{
 			RegisterNeighbors(pAgent);
+		}
+
+		if (bUseVisionCone)
+		{
+			FilterNeighborsByVisionCone(pAgent);
+		}
+
+		if (bAvoidOtherFlocks && !OtherFlocks.IsEmpty())
+		{
+			RegisterOtherFlockNeighbors(pAgent);
+		}
+		else
+		{
+			OtherFlockNeighbors.Reset();
 		}
 
 		pAgent->Tick(DeltaTime);
@@ -167,7 +190,7 @@ void Flock::RenderDebug()
 	}
 }
 
-void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
+void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize, int NrOfFlocks, TFunction<void()> const& OnAddFlock, TFunction<void()> const& OnRemoveFlock)
 {
 #ifdef PLATFORM_WINDOWS
 #pragma region UI
@@ -223,7 +246,43 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 		ImGui::Separator();
 		ImGui::Spacing();
 
-		//ImGui::Checkbox("Trim World", &m_bTrimWorld); 
+		ImGui::Text("Flocking Variation: Vision Cone");
+		ImGui::Spacing();
+		ImGui::Checkbox("Use Vision Cone For Neighbors", &bUseVisionCone);
+		if (bUseVisionCone)
+		{
+			ImGuiHelpers::ImGuiSliderFloatWithSetter("Cone Angle (deg)", VisionConeAngle, 10.f, 360.f,
+				[this](float InVal) { VisionConeAngle = InVal; }, "%.0f");
+		}
+
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		ImGui::Text("Flocking Variation: Multiple Flocks");
+		ImGui::Spacing();
+		ImGui::Text("Number of Flocks: %d", NrOfFlocks);
+		if (ImGui::Button("Add Flock") && OnAddFlock) OnAddFlock();
+		ImGui::SameLine();
+		if (ImGui::Button("Remove Flock") && OnRemoveFlock) OnRemoveFlock();
+
+		ImGui::Spacing();
+		ImGui::Text("Other Flocks: %d", OtherFlocks.Num());
+		if (!OtherFlocks.IsEmpty())
+		{
+			ImGui::Checkbox("Avoid Other Flocks", &bAvoidOtherFlocks);
+			if (bAvoidOtherFlocks)
+			{
+				ImGuiHelpers::ImGuiSliderFloatWithSetter("Avoidance Radius", InterFlockAvoidanceRadius, 50.f, 1000.f,
+					[this](float InVal) { InterFlockAvoidanceRadius = InVal; }, "%.0f");
+			}
+		}
+
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		//ImGui::Checkbox("Trim World", &m_bTrimWorld);
 		//if (m_bTrimWorld)
 		//{
 		//	ImGuiHelpers::ImGuiSliderFloatWithSetter("Trim Size",
@@ -242,13 +301,14 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 		if (pBlendedSteering)
 		{
 			auto& weights = pBlendedSteering->GetWeightedBehaviorsRef();
-			if (weights.size() >= 5)
+			if (weights.size() >= 6)
 			{
 				ImGuiHelpers::ImGuiSliderFloatWithSetter("Cohesion", weights[0].Weight, 0.f, 1.f, [&weights](float InVal) { weights[0].Weight = InVal; }, "%.2f");
 				ImGuiHelpers::ImGuiSliderFloatWithSetter("Separation", weights[1].Weight, 0.f, 1.f, [&weights](float InVal) { weights[1].Weight = InVal; }, "%.2f");
 				ImGuiHelpers::ImGuiSliderFloatWithSetter("Velocity Match", weights[2].Weight, 0.f, 1.f, [&weights](float InVal) { weights[2].Weight = InVal; }, "%.2f");
 				ImGuiHelpers::ImGuiSliderFloatWithSetter("Seek", weights[3].Weight, 0.f, 1.f, [&weights](float InVal) { weights[3].Weight = InVal; }, "%.2f");
 				ImGuiHelpers::ImGuiSliderFloatWithSetter("Wander", weights[4].Weight, 0.f, 1.f, [&weights](float InVal) { weights[4].Weight = InVal; }, "%.2f");
+				ImGuiHelpers::ImGuiSliderFloatWithSetter("Flock Avoidance", weights[5].Weight, 0.f, 1.f, [&weights](float InVal) { weights[5].Weight = InVal; }, "%.2f");
 			}
 		}
 		//End
@@ -266,6 +326,11 @@ void Flock::RenderNeighborhood()
 		if (bUseSpacePartitioning) pPartitionedSpace->RegisterNeighbors(*Agents[0], NeighborhoodRadius);
 		else RegisterNeighbors(Agents[0]);
 
+		if (bUseVisionCone)
+		{
+			FilterNeighborsByVisionCone(Agents[0]);
+		}
+
 		FVector pos = Agents[0]->GetActorLocation();
 		DrawDebugCircle(pWorld, pos, NeighborhoodRadius, 32, FColor::Green, false, -1.f, 0, 2.f, FVector(1, 0, 0), FVector(0, 1, 0), false);
 
@@ -280,6 +345,28 @@ void Flock::RenderNeighborhood()
 			FVector BoxExtents = FVector(NeighborhoodRadius, NeighborhoodRadius, 0.f);
 
 			DrawDebugBox(pWorld, pos, BoxExtents, FColor::Yellow, false, -1.f, 0, 2.0f);
+		}
+
+		if (bUseVisionCone)
+		{
+			const FVector2D agentForward = FVector2D(Agents[0]->GetActorForwardVector()).GetSafeNormal();
+			const float halfAngle = VisionConeAngle * 0.5f;
+
+			const FVector2D leftEdge = agentForward.GetRotated(-halfAngle) * NeighborhoodRadius;
+			const FVector2D rightEdge = agentForward.GetRotated(halfAngle) * NeighborhoodRadius;
+
+			DrawDebugLine(pWorld, pos, pos + FVector(leftEdge, 0.f), FColor::Cyan, false, -1.f, 0, 2.f);
+			DrawDebugLine(pWorld, pos, pos + FVector(rightEdge, 0.f), FColor::Cyan, false, -1.f, 0, 2.f);
+		}
+
+		if (bAvoidOtherFlocks && !OtherFlocks.IsEmpty())
+		{
+			DrawDebugCircle(pWorld, pos, InterFlockAvoidanceRadius, 32, FColor::Red, false, -1.f, 0, 2.f, FVector(1, 0, 0), FVector(0, 1, 0), false);
+
+			for (ASteeringAgent* pOtherAgent : GetOtherFlockNeighbors())
+			{
+				DrawDebugLine(pWorld, pos, pOtherAgent->GetActorLocation(), FColor::Red, false, -1.f, 0, 2.f);
+			}
 		}
 	}
 }
@@ -303,8 +390,62 @@ void Flock::RegisterNeighbors(ASteeringAgent* const pAgent)
 	}
 }
 
+void Flock::FilterNeighborsByVisionCone(ASteeringAgent* const Agent)
+{
+	NrOfVisibleNeighbors = 0;
+
+	const bool bUsePartitionedCandidates = bUseSpacePartitioning && pPartitionedSpace;
+	const TArray<ASteeringAgent*>& candidates = bUsePartitionedCandidates ? pPartitionedSpace->GetNeighbors() : Neighbors;
+	const int nrCandidates = bUsePartitionedCandidates ? pPartitionedSpace->GetNrOfNeighbors() : NrOfNeighbors;
+
+	const FVector2D agentPos = Agent->GetPosition();
+	const FVector2D agentForward = FVector2D(Agent->GetActorForwardVector()).GetSafeNormal();
+	const float cosHalfAngle = FMath::Cos(FMath::DegreesToRadians(VisionConeAngle * 0.5f));
+
+	for (int i = 0; i < nrCandidates; ++i)
+	{
+		ASteeringAgent* pOtherAgent = candidates[i];
+		const FVector2D toOther = (pOtherAgent->GetPosition() - agentPos).GetSafeNormal();
+
+		if (FVector2D::DotProduct(agentForward, toOther) >= cosHalfAngle)
+		{
+			if (NrOfVisibleNeighbors < VisibleNeighbors.Num())
+			{
+				VisibleNeighbors[NrOfVisibleNeighbors++] = pOtherAgent;
+			}
+		}
+	}
+}
+
+void Flock::RegisterOtherFlockNeighbors(ASteeringAgent* const Agent)
+{
+	OtherFlockNeighbors.Reset();
+
+	const FVector2D agentPos = Agent->GetPosition();
+	const float radiusSquared = InterFlockAvoidanceRadius * InterFlockAvoidanceRadius;
+
+	for (Flock* pOtherFlock : OtherFlocks)
+	{
+		if (!pOtherFlock) continue;
+
+		for (ASteeringAgent* pOtherAgent : pOtherFlock->GetAgents())
+		{
+			if (!pOtherAgent) continue;
+
+			if (FVector2D::DistSquared(agentPos, pOtherAgent->GetPosition()) <= radiusSquared)
+			{
+				OtherFlockNeighbors.Add(pOtherAgent);
+			}
+		}
+	}
+}
+
 int Flock::GetNrOfNeighbors() const
 {
+	if (bUseVisionCone)
+	{
+		return NrOfVisibleNeighbors;
+	}
 	if (bUseSpacePartitioning && pPartitionedSpace)
 	{
 		return pPartitionedSpace->GetNrOfNeighbors();
@@ -314,6 +455,10 @@ int Flock::GetNrOfNeighbors() const
 
 const TArray<ASteeringAgent*>& Flock::GetNeighbors() const
 {
+	if (bUseVisionCone)
+	{
+		return VisibleNeighbors;
+	}
 	if (bUseSpacePartitioning && pPartitionedSpace)
 	{
 		return pPartitionedSpace->GetNeighbors();
@@ -356,6 +501,26 @@ void Flock::SetTarget_Seek(FSteeringParams const& Target)
 	if (pSeekBehavior)
 	{
 		pSeekBehavior->SetTarget(Target);
+	}
+}
+
+void Flock::ApplyFlockColor(ASteeringAgent* const Agent) const
+{
+	if (!Agent) return;
+
+	USkeletalMeshComponent* pMesh = Agent->GetMesh();
+	if (!pMesh) return;
+
+	UMaterialInterface* pBaseMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/LevelPrototyping/Materials/M_BaseColor.M_BaseColor"));
+	if (!pBaseMaterial) return;
+
+	for (int32 SlotIndex = 0; SlotIndex < pMesh->GetNumMaterials(); ++SlotIndex)
+	{
+		if (UMaterialInstanceDynamic* pDynMaterial = UMaterialInstanceDynamic::Create(pBaseMaterial, Agent))
+		{
+			pDynMaterial->SetVectorParameterValue(TEXT("Base Color"), FlockColor);
+			pMesh->SetMaterial(SlotIndex, pDynMaterial);
+		}
 	}
 }
 

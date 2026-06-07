@@ -48,3 +48,21 @@ SteeringOutput VelocityMatch::CalculateSteering(float deltaT, ASteeringAgent& pA
     steering.LinearVelocity = pFlock->GetAverageNeighborVelocity();
     return steering;
 }
+
+// ******************
+// FLOCK AVOIDANCE (FLOCKING VARIATION)
+SteeringOutput FlockAvoidance::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
+{
+    SteeringOutput steering{};
+    const auto& otherFlockNeighbors = pFlock->GetOtherFlockNeighbors();
+
+    for (ASteeringAgent* pOtherAgent : otherFlockNeighbors)
+    {
+        FVector2D vectorToAgent = pAgent.GetPosition() - pOtherAgent->GetPosition();
+        float distance = vectorToAgent.Length();
+
+        steering.LinearVelocity += (vectorToAgent.GetSafeNormal() / distance);
+    }
+
+    return steering;
+}

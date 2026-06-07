@@ -18,16 +18,17 @@ public:
 	Flock(
 	UWorld* pWorld,
 	TSubclassOf<ASteeringAgent> AgentClass,
-	int FlockSize = 10, 
-	float WorldSize = 100.f, 
-	ASteeringAgent* const pAgentToEvade = nullptr, 
-	bool bTrimWorld = false);
+	int FlockSize = 10,
+	float WorldSize = 100.f,
+	ASteeringAgent* const pAgentToEvade = nullptr,
+	bool bTrimWorld = false,
+	FLinearColor const& FlockColor = FLinearColor::White);
 
 	~Flock();
 
 	void Tick(float DeltaTime);
 	void RenderDebug();
-	void ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize);
+	void ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize, int NrOfFlocks, TFunction<void()> const& OnAddFlock, TFunction<void()> const& OnRemoveFlock);
 
 	void RegisterNeighbors(ASteeringAgent* const Agent);
 
@@ -39,12 +40,20 @@ public:
 
 	void SetTarget_Seek(FSteeringParams const & Target);
 
+	// multiple flocks avoiding each other
+	const TArray<ASteeringAgent*>& GetAgents() const { return Agents; }
+	void SetOtherFlocks(TArray<Flock*> const& InOtherFlocks) { OtherFlocks = InOtherFlocks; }
+	const TArray<ASteeringAgent*>& GetOtherFlockNeighbors() const { return OtherFlockNeighbors; }
+
 private:
 	// For debug rendering purposes
 	UWorld* pWorld{nullptr};
 	
 	int FlockSize{0};
 	TArray<ASteeringAgent*> Agents{};
+
+	FLinearColor FlockColor{FLinearColor::White};
+	void ApplyFlockColor(ASteeringAgent* const Agent) const;
 
 	// Cell space
 	std::unique_ptr<CellSpace> pPartitionedSpace{};
@@ -53,9 +62,29 @@ private:
 	bool bUseSpacePartitioning{ true };
 
 	TArray<ASteeringAgent*> Neighbors{};
-	
+
 	float NeighborhoodRadius{100.f};
 	int NrOfNeighbors{0};
+
+	//vision cone in front of the boid
+	bool bUseVisionCone{true};
+	float VisionConeAngle{221.f};
+
+	TArray<ASteeringAgent*> VisibleNeighbors{};
+	int NrOfVisibleNeighbors{0};
+
+	void FilterNeighborsByVisionCone(ASteeringAgent* const Agent);
+
+	// multiple flocks which avoid each other
+	TArray<Flock*> OtherFlocks{};
+	TArray<ASteeringAgent*> OtherFlockNeighbors{};
+
+	bool bAvoidOtherFlocks{true};
+	float InterFlockAvoidanceRadius{200.f};
+
+	std::unique_ptr<FlockAvoidance> pFlockAvoidanceBehavior{};
+
+	void RegisterOtherFlockNeighbors(ASteeringAgent* const Agent);
 
 	ASteeringAgent* pAgentToEvade{nullptr};
 	

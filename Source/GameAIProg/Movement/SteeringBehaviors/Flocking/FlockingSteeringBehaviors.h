@@ -24,11 +24,22 @@ private:
     Flock* pFlock = nullptr;
 };
 
-// VELOCITY MATCH - FLOCKING 
+// VELOCITY MATCH - FLOCKING
 class VelocityMatch final : public ISteeringBehavior
 {
 public:
     VelocityMatch(Flock* const pFlock) : pFlock(pFlock) {};
+    SteeringOutput CalculateSteering(float deltaT, ASteeringAgent& pAgent) override;
+
+private:
+    Flock* pFlock = nullptr;
+};
+
+// FLOCK AVOIDANCE - FLOCKING VARIATION
+class FlockAvoidance final : public ISteeringBehavior
+{
+public:
+    FlockAvoidance(Flock* const pFlock) : pFlock(pFlock) {};
     SteeringOutput CalculateSteering(float deltaT, ASteeringAgent& pAgent) override;
 
 private:

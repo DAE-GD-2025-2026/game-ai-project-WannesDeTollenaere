@@ -30,15 +30,7 @@ void ALevel_Flocking::BeginPlay()
 		pAgentToEvade->SetDebugRenderingEnabled(true);
 	}
 
-	pFlock = TUniquePtr<Flock>(
-		new Flock(
-			GetWorld(),
-			SteeringAgentClass,
-			FlockSize,
-			TrimWorld->GetTrimWorldSize(),
-			pAgentToEvade,
-			true)
-	);
+	AddFlock();
 }
 
 // Called every frame
@@ -46,13 +38,20 @@ void ALevel_Flocking::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	pFlock->ImGuiRender(WindowPos, WindowSize);
-	pFlock->Tick(DeltaTime);
-	pFlock->RenderDebug();
-	
-	//FSteeringParams target{};
-	//target.Position = pFlock->GetAverageNeighborPos();
-	//pFlock->SetTarget_Seek(target );
+	if (!Flocks.IsEmpty() && Flocks[0])
+	{
+		Flocks[0]->ImGuiRender(WindowPos, WindowSize, Flocks.Num(),
+			[this]() { AddFlock(); },
+			[this]() { RemoveFlock(); });
+	}
+
+	for (int i = 0; i < Flocks.Num(); ++i)
+	{
+		if (!Flocks[i]) continue;
+
+		Flocks[i]->Tick(DeltaTime);
+		Flocks[i]->RenderDebug();
+	}
 
 	if (bUseMouseTarget && pEvadeAgentBehavior && pAgentToEvade)
 	{
@@ -60,3 +59,46 @@ void ALevel_Flocking::Tick(float DeltaTime)
 	}
 }
 
+void ALevel_Flocking::AddFlock()
+{
+	const uint8 hue = static_cast<uint8>((Flocks.Num() * 67) % 256);
+	const FLinearColor flockColor = FLinearColor::MakeFromHSV8(hue, 200, 255);
+
+	Flocks.Add(MakeUnique<Flock>(
+		GetWorld(),
+		SteeringAgentClass,
+		FlockSize,
+		TrimWorld->GetTrimWorldSize(),
+		pAgentToEvade,
+		true,
+		flockColor));
+
+	RelinkFlockAvoidance();
+}
+
+void ALevel_Flocking::RemoveFlock()
+{
+	if (Flocks.Num() <= 1) return;
+
+	Flocks.RemoveAt(Flocks.Num() - 1);
+	RelinkFlockAvoidance();
+}
+
+void ALevel_Flocking::RelinkFlockAvoidance()
+{
+	for (int i = 0; i < Flocks.Num(); ++i)
+	{
+		if (!Flocks[i]) continue;
+
+		TArray<Flock*> otherFlocks;
+		for (int j = 0; j < Flocks.Num(); ++j)
+		{
+			if (i != j && Flocks[j])
+			{
+				otherFlocks.Add(Flocks[j].Get());
+			}
+		}
+
+		Flocks[i]->SetOtherFlocks(otherFlocks);
+	}
+}
