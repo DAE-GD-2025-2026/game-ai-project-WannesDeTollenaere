@@ -17,9 +17,12 @@ For the extra assignment, the **Flocking variations** option was picked, extendi
 
 ### Vision Cone Neighbor Detection
 Instead of treating every agent within the neighborhood radius as a neighbor, an agent now only considers others that fall inside a **vision cone** in front of it. After the regular neighborhood query (brute-force or spatially partitioned), the candidates are filtered using the dot product between the agent's forward direction and the direction towards the candidate, compared against the cosine of half the cone's field-of-view angle. This makes the flock react only to what's "in front of" each boid, rather than agents approaching from behind. Both the cone and field-of-view angle are toggleable/adjustable at runtime through ImGui and are debug-rendered (cyan lines) alongside the neighborhood circle.
+<img width="798" height="648" alt="image" src="https://github.com/user-attachments/assets/9a75bdfa-97a3-4bf4-860d-48d75dc5e7bf" />
+
 
 ### Multiple Dynamically Adjustable Flocks Which Avoid Each Other
 `ALevel_Flocking` can now spawn and destroy multiple `Flock` instances at runtime via the **Flock Manager** ImGui panel ("Add Flock"/"Remove Flock"). Every flock is made aware of all other flocks (`Flock::SetOtherFlocks`), and a new **Flock Avoidance** steering behavior steers each agent away from nearby agents that belong to a different flock - blended in alongside Separation, Cohesion, Velocity Match, Seek and Wander. The avoidance radius and weight are adjustable per flock at runtime, and the avoided neighbors/radius are debug-rendered in red.
+<img width="539" height="462" alt="flocks" src="https://github.com/user-attachments/assets/ae124e1a-c6c3-4f53-b4e0-14fcbb4fd5e5" />
 
 ---
 
